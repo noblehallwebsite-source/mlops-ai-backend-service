@@ -21,7 +21,7 @@ jobs:
         key: ${{ secrets.AIOPS_SSH_KEY }}
         script: |
 
-          if [ ! -d ~/mlops-ai-service ]; then
+          if [ ! -d ~/mlops-ai-backend-service ]; then
             git clone https://github.com/noblehallwebsite-source/mlops-ai-backend-service.git ~/mlops-ai-backend-service
           fi
 
