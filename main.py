@@ -1,30 +1,27 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
+
+Instrumentator().instrument(app).expose(app)
 
 class InputData(BaseModel):
     text: str
 
 @app.get("/")
-def read_root():
-    return {"message": "MLOps AI Service is running"}
+def root():
+    return {"message": "AI Service Running"}
 
 @app.post("/analyze")
 def analyze(data: InputData):
-    text = data.text
-    
-    # 1. Initialize the variable with a default or None
-    result = "" 
 
-    # 2. Run your logic
-    if "error" in text.lower():
+    if "error" in data.text.lower():
         result = "Potential issue detected"
     else:
-        result = "System looks normal"
+        result = "System normal"
 
-    # 3. Now the IDE knows 'result' definitely exists
     return {
-        "input": text,
+        "input": data.text,
         "result": result
     }
