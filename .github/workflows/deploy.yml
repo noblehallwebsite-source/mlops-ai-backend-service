@@ -38,4 +38,4 @@ jobs:
           docker run -d \
             --name ai-service \
             -p 127.0.0.1:8000:8000 \
-            mlops-ai-service
+            mlops-ai-backend-service
