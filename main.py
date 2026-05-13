@@ -15,7 +15,6 @@ def root():
 
 @app.post("/analyze")
 def analyze(data: InputData):
-
     if "error" in data.text.lower():
         result = "Potential issue detected"
     else:
