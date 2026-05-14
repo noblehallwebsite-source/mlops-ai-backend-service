@@ -1,3 +1,46 @@
+# name: Deploy AI Service
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v4
+
+#     - name: Deploy to VPS
+#       uses: appleboy/ssh-action@master
+#       with:
+#         host: ${{ secrets.AIOPS_HOST }}
+#         username: ${{ secrets.AIOPS_USER }}
+#         key: ${{ secrets.AIOPS_SSH_KEY }}
+#         script: |
+
+#           if [ ! -d ~/mlops-ai-backend-service ]; then
+#             git clone https://github.com/noblehallwebsite-source/mlops-ai-backend-service.git ~/mlops-ai-backend-service
+#           fi
+
+#           cd ~/mlops-ai-backend-service
+
+#           git fetch origin
+#           git reset --hard origin/main
+
+#           docker build -t mlops-ai-backend-service .
+
+#           docker stop ai-service || true
+#           docker rm ai-service || true
+
+#           docker run -d \
+#             --name ai-service \
+#             -p 127.0.0.1:8000:8000 \
+#             mlops-ai-backend-service
+
+
 name: Deploy AI Service
 
 on:
@@ -30,12 +73,20 @@ jobs:
           git fetch origin
           git reset --hard origin/main
 
-          docker build -t mlops-ai-backend-service .
+          docker network create mlops-network || true
+
+          docker build --no-cache -t mlops-ai-service .
 
           docker stop ai-service || true
           docker rm ai-service || true
 
           docker run -d \
             --name ai-service \
+            --network mlops-network \
             -p 127.0.0.1:8000:8000 \
-            mlops-ai-backend-service
+            mlops-ai-service
+
+          cd monitoring
+
+          docker compose down || true
+          docker compose up -d
