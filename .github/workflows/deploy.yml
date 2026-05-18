@@ -91,3 +91,4 @@ jobs:
 
           docker compose down || true
           docker compose up -d
+          timeout 3600
