@@ -12,6 +12,9 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
 # Pip will see CPU-torch is already installed and will skip the heavy CUDA binaries.
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Run the download script during the build phase
+COPY download_model.py .
+RUN python download_model.py
 # 4. Copy the rest of your application code
 COPY . .
 

@@ -1,7 +1,8 @@
 from transformers import pipeline
 
 classifier = pipeline(
-    "sentiment-analysis"
+    task="sentiment-analysis",
+     model="./local_model"
 )
 
 result = classifier(
