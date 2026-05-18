@@ -84,6 +84,7 @@ jobs:
             --name ai-service \
             --network mlops-network \
             -p 127.0.0.1:8000:8000 \
+            --env-file .env \
             mlops-ai-service
 
           cd monitoring

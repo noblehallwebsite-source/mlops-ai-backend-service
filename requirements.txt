@@ -3,3 +3,7 @@ uvicorn
 prometheus-fastapi-instrumentator
 openai
 python-dotenv
+transformers
+torch
+sentence-transformers
+accelerate
