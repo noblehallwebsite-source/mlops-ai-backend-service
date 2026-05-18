@@ -1,3 +1,5 @@
 fastapi
 uvicorn
 prometheus-fastapi-instrumentator
+openai
+python-dotenv
