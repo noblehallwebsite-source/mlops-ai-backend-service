@@ -56,7 +56,7 @@ def root():
 def analyze(data: InputData):
 
     response = client.chat.completions.create(
-        model="llama3-8b-8192",
+        model="llama-3.1-8b-instant",
         messages=[
             {
                 "role": "system",
