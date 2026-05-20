@@ -74,6 +74,9 @@ class DocumentRequest(BaseModel):
 class SearchRequest(BaseModel):
     query: str
 
+class RagQueryRequest(BaseModel):
+    query: str
+
 # =========================
 # Root Endpoint
 # =========================
@@ -172,4 +175,59 @@ def search_documents(data: SearchRequest):
     return {
         "query": data.query,
         "results": results
+    }
+
+# ===========================
+# RAG endpoint 
+# ===========================
+@app.post("/rag")
+def rag_query(data: RagQueryRequest):
+
+    # 1. Search vector memory
+    search_results = memory_store.search(
+        data.query,
+        top_k=3
+    )
+
+    # 2. Combine retrieved context
+    context = "\n".join([
+        item["text"]
+        for item in search_results
+    ])
+
+    # 3. Build augmented prompt
+    augmented_prompt = f"""
+You are an AI infrastructure assistant.
+
+Use the provided infrastructure context
+to answer the user's question.
+
+Context:
+{context}
+
+User Question:
+{data.query}
+"""
+
+    # 4. Send to LLM
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a Kubernetes and infrastructure AI assistant."
+            },
+            {
+                "role": "user",
+                "content": augmented_prompt
+            }
+        ]
+    )
+
+    answer = response.choices[0].message.content
+
+    return {
+        "query": data.query,
+        "retrieved_context": search_results,
+        "ai_answer": answer
     }
