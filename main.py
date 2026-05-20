@@ -66,6 +66,12 @@ class SimilarityRequest(BaseModel):
     text1: str
     text2: str
 
+class DocumentRequest(BaseModel):
+    text: str
+
+
+class SearchRequest(BaseModel):
+    query: str
 
 # =========================
 # Root Endpoint
@@ -139,4 +145,30 @@ def similarity(data: SimilarityRequest):
         "text1": data.text1,
         "text2": data.text2,
         "similarity_score": score
+    }
+
+# ===========================
+# Document storage endpoint 
+# ===========================
+@app.post("/documents")
+def add_document(data: DocumentRequest):
+
+    memory_store.add_document(data.text)
+
+    return {
+        "message": "Document stored successfully",
+        "stored_text": data.text
+    }
+
+# ===========================
+# Search endpoint 
+# ===========================
+@app.post("/search")
+def search_documents(data: SearchRequest):
+
+    results = memory_store.search(data.query)
+
+    return {
+        "query": data.query,
+        "results": results
     }

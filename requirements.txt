@@ -6,3 +6,5 @@ python-dotenv
 transformers
 sentence-transformers
 accelerate
+faiss-cpu
+numpy
