@@ -165,3 +165,5 @@ class VectorMemoryStore:
                 })
 
         return results
+# Global application memory store instance
+memory_store = VectorMemoryStore()
