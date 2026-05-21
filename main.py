@@ -38,6 +38,7 @@ from embedding_service import (
     generate_embedding,
     calculate_similarity
 )
+from chunking_service import chunk_text
 
 load_dotenv()
 
@@ -76,6 +77,9 @@ class SearchRequest(BaseModel):
 
 class RagQueryRequest(BaseModel):
     query: str
+
+class LargeDocumentRequest(BaseModel):
+    text: str
 
 # =========================
 # Root Endpoint
@@ -230,4 +234,25 @@ User Question:
         "query": data.query,
         "retrieved_context": search_results,
         "ai_answer": answer
+    }
+
+
+@app.post("/add-large-document")
+def add_large_document(
+    data: LargeDocumentRequest
+):
+
+    chunks = chunk_text(
+        data.text
+    )
+
+    for chunk in chunks:
+
+        memory_store.add_document(
+            chunk
+        )
+
+    return {
+        "message": "Large document added",
+        "chunks_created": len(chunks)
     }
