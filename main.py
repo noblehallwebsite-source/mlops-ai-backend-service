@@ -49,7 +49,9 @@ from chromadb_service import (
     search_documents
 )
 
+# ADD THESE TWO IMPORTS
 from hybrid_search import hybrid_search
+from reranker import rerank
 
 load_dotenv()
 
@@ -100,6 +102,8 @@ class FilteredSearchRequest(BaseModel):
 class HybridSearchRequest(BaseModel):
     query: str
 
+class SmartSearchRequest(BaseModel):
+    query: str
 
 class RagQueryRequest(BaseModel):
     query: str
@@ -276,6 +280,22 @@ def hybrid(data: HybridSearchRequest):
         "query": data.query,
         "results": results
     }
+
+# ADD THE NEW ENDPOINT
+@app.post("/search-smart")
+def smart_search(data: SmartSearchRequest):
+
+    # 1. Hybrid retrieval (broad recall - gathers candidates from vector + keyword)
+    candidates = hybrid_search(data.query)
+
+    # 2. Rerank (precision layer - compares query directly against each text block)
+    top_results = rerank(data.query, candidates)
+
+    return {
+        "query": data.query,
+        "results": top_results
+    }
+
 
 
 # ===========================
