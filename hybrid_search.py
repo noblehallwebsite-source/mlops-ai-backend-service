@@ -18,10 +18,22 @@ def hybrid_search(query: str, top_k: int = 3):
     # this was added here instead of top of file to avoid circular 
     # import or infinite loop
     from chromadb_service import search_documents
+    
     # 1. VECTOR SEARCH
     vector_results = search_documents(query, top_k=top_k)
 
-    # 2. KEYWORD SEARCH
+    # 🔥 DEFENSIVE GUARD PLACEMENT
+    # Check if your corpus array (documents) is completely empty
+    if not documents:
+        print("⚠️ Keyword corpus 'documents' is empty. Skipping BM25.")
+        # If the corpus is empty, we can't do keyword math, 
+        # so just return whatever the vector search found!
+        for item in vector_results:
+            item["source"] = "vector"
+            item["score"] = item["distance"]
+        return vector_results
+
+    # 2. KEYWORD SEARCH (Safe to run now because we verified documents exist!)
     bm25 = build_bm25()
     tokenized_query = query.lower().split()
     keyword_scores = bm25.get_scores(tokenized_query)
