@@ -117,6 +117,13 @@ class RagQueryRequest(BaseModel):
 class LargeDocumentRequest(BaseModel):
     text: str
 
+class IncidentEventRequest(BaseModel):
+    source: str
+    severity: str
+    environment: str
+    event_type: str
+    message: str
+
 # =========================
 # Root Endpoint
 # =========================
@@ -472,3 +479,29 @@ USER QUESTION
 #         "message": "Large document added",
 #         "chunks_created": len(chunks)
 #     }
+
+
+@app.post("/incident-event")
+def ingest_incident_event(
+    data: IncidentEventRequest
+):
+
+    import uuid
+
+    metadata = {
+        "source": data.source,
+        "severity": data.severity,
+        "environment": data.environment,
+        "event_type": data.event_type
+    }
+
+    add_document(
+        text=data.message,
+        metadata=metadata,
+        doc_id=str(uuid.uuid4())
+    )
+
+    return {
+        "message": "Incident event ingested",
+        "metadata": metadata
+    }
