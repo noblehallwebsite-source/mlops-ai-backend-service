@@ -1,5 +1,6 @@
 import chromadb
 from sentence_transformers import SentenceTransformer
+from hybrid_search import add_to_keyword_index
 
 # Embedding model
 model = SentenceTransformer(
@@ -22,14 +23,20 @@ def add_document(
     metadata: dict,
     doc_id: str
 ):
+    # Generate embedding vector
     embedding = model.encode(text).tolist()
 
+    # Save to your Vector Store (ChromaDB)
     collection.add(
         documents=[text],
         embeddings=[embedding],
         metadatas=[metadata],
         ids=[doc_id]
     )
+
+    # 🔥 ADDED LINE: Save to your Keyword Store (BM25)
+    # This fulfills the hybrid requirement so data is dual-indexed automatically!
+    add_to_keyword_index(text)
 
 
 def search_documents(

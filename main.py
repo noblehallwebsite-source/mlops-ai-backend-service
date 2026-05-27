@@ -49,6 +49,8 @@ from chromadb_service import (
     search_documents
 )
 
+from hybrid_search import hybrid_search
+
 load_dotenv()
 
 app = FastAPI()
@@ -94,6 +96,9 @@ class SearchRequest(BaseModel):
 class FilteredSearchRequest(BaseModel):
     query: str
     environment: str
+
+class HybridSearchRequest(BaseModel):
+    query: str
 
 
 class RagQueryRequest(BaseModel):
@@ -262,7 +267,17 @@ def filtered_search(
     }
 
 
-    
+@app.post("/hybrid-search")
+def hybrid(data: HybridSearchRequest):
+
+    results = hybrid_search(data.query)
+
+    return {
+        "query": data.query,
+        "results": results
+    }
+
+
 # ===========================
 # RAG endpoint 
 # ===========================

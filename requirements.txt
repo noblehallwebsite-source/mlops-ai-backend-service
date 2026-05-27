@@ -9,3 +9,4 @@ accelerate
 faiss-cpu
 numpy
 chromadb
+rank-bm25
