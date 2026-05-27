@@ -1,5 +1,5 @@
 from rank_bm25 import BM25Okapi
-from chromadb_service import search_documents
+
 
 # In-memory keyword store (simple version for now)
 documents = []
@@ -15,6 +15,9 @@ def build_bm25():
 
 
 def hybrid_search(query: str, top_k: int = 3):
+    # this was added here instead of top of file to avoid circular 
+    # import or infinite loop
+    from chromadb_service import search_documents
     # 1. VECTOR SEARCH
     vector_results = search_documents(query, top_k=top_k)
 
