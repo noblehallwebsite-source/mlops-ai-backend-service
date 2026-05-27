@@ -40,6 +40,15 @@ from embedding_service import (
 )
 from chunking_service import chunk_text
 
+# The below is when i want to use vector_store.py which is for
+# faise raw persistent store
+# from vector_store import memory_store
+
+from chromadb_service import (
+    add_document,
+    search_documents
+)
+
 load_dotenv()
 
 app = FastAPI()
@@ -50,7 +59,7 @@ client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
-from vector_store import memory_store
+
 
 # =========================
 # Request Models
@@ -68,12 +77,24 @@ class SimilarityRequest(BaseModel):
     text1: str
     text2: str
 
+# This is for the faiss persistent store
+# class DocumentRequest(BaseModel):
+    # text: str
+
+# This is for the new chromadb
 class DocumentRequest(BaseModel):
     text: str
-
+    source: str
+    environment: str
+    severity: str
 
 class SearchRequest(BaseModel):
     query: str
+
+class FilteredSearchRequest(BaseModel):
+    query: str
+    environment: str
+
 
 class RagQueryRequest(BaseModel):
     query: str
@@ -158,29 +179,90 @@ def similarity(data: SimilarityRequest):
 # ===========================
 # Document storage endpoint 
 # ===========================
-@app.post("/documents")
-def add_document(data: DocumentRequest):
+# THis for the old faiss storage
+# @app.post("/documents")
+# def add_document(data: DocumentRequest):
 
-    memory_store.add_document(data.text)
+#     memory_store.add_document(data.text)
+
+#     return {
+#         "message": "Document stored successfully",
+#         "stored_text": data.text
+#     }
+
+
+# This is for the new chromadb
+@app.post("/documents")
+def store_document(data: DocumentRequest):
+
+    import uuid
+
+    metadata = {
+        "source": data.source,
+        "environment": data.environment,
+        "severity": data.severity
+    }
+
+    add_document(
+        text=data.text,
+        metadata=metadata,
+        doc_id=str(uuid.uuid4())
+    )
 
     return {
         "message": "Document stored successfully",
-        "stored_text": data.text
+        "metadata": metadata
     }
 
 # ===========================
 # Search endpoint 
 # ===========================
-@app.post("/search")
-def search_documents(data: SearchRequest):
+# @app.post("/search")
+# def search_documents(data: SearchRequest):
 
-    results = memory_store.search(data.query)
+#     results = memory_store.search(data.query)
+
+#     return {
+#         "query": data.query,
+#         "results": results
+#     }
+
+
+# New chromadb search
+@app.post("/search")
+def search(data: SearchRequest):
+
+    results = search_documents(
+        query=data.query
+    )
 
     return {
         "query": data.query,
         "results": results
     }
 
+@app.post("/search-filtered")
+def filtered_search(
+    data: FilteredSearchRequest
+):
+
+    results = search_documents(
+        query=data.query,
+        filters={
+            "environment": data.environment
+        }
+    )
+
+    return {
+        "query": data.query,
+        "filters": {
+            "environment": data.environment
+        },
+        "results": results
+    }
+
+
+    
 # ===========================
 # RAG endpoint 
 # ===========================

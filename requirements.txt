@@ -8,3 +8,4 @@ sentence-transformers
 accelerate
 faiss-cpu
 numpy
+chromadb
