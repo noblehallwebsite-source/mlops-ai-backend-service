@@ -124,6 +124,9 @@ class IncidentEventRequest(BaseModel):
     event_type: str
     message: str
 
+class IncidentAnalysisRequest(BaseModel):
+    query: str
+
 # =========================
 # Root Endpoint
 # =========================
@@ -504,4 +507,96 @@ def ingest_incident_event(
     return {
         "message": "Incident event ingested",
         "metadata": metadata
+    }
+
+
+@app.post("/incident-analysis")
+def incident_analysis(
+    data: IncidentAnalysisRequest
+):
+
+    # =====================================
+    # 1. Retrieve operational evidence
+    # =====================================
+
+    candidates = hybrid_search(
+        data.query,
+        top_k=10
+    )
+
+    reranked = rerank(
+        data.query,
+        candidates,
+        top_k=5
+    )
+
+    cleaned = deduplicate_results(
+        reranked
+    )
+
+    final_context = limit_context(
+        cleaned,
+        max_chunks=5
+    )
+
+    context = build_context(
+        final_context
+    )
+
+    # =====================================
+    # 2. Operational AI Prompt
+    # =====================================
+
+    prompt = f"""
+You are an expert Kubernetes SRE AI assistant.
+
+Analyze the infrastructure evidence below.
+
+Tasks:
+- identify probable root cause
+- identify operational impact
+- identify severity
+- suggest remediation steps
+
+Use ONLY the provided evidence.
+
+=========================
+INFRASTRUCTURE EVIDENCE
+=========================
+
+{context}
+
+=========================
+QUESTION
+=========================
+
+{data.query}
+"""
+
+    # =====================================
+    # 3. LLM reasoning
+    # =====================================
+
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a Kubernetes and SRE incident analysis assistant."
+                )
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    )
+
+    answer = response.choices[0].message.content
+
+    return {
+        "query": data.query,
+        "retrieved_evidence": final_context,
+        "incident_analysis": answer
     }
