@@ -53,6 +53,12 @@ from chromadb_service import (
 from hybrid_search import hybrid_search
 from reranker import rerank
 
+from context_engineering import (
+    deduplicate_results,
+    limit_context,
+    build_context
+)
+
 load_dotenv()
 
 app = FastAPI()
@@ -301,42 +307,136 @@ def smart_search(data: SmartSearchRequest):
 # ===========================
 # RAG endpoint 
 # ===========================
+# @app.post("/rag")
+# def rag_query(data: RagQueryRequest):
+
+#     # 1. Search vector memory
+#     search_results = memory_store.search(
+#         data.query,
+#         top_k=3
+#     )
+
+#     # 2. Combine retrieved context
+#     context = "\n".join([
+#         item["text"]
+#         for item in search_results
+#     ])
+
+#     # 3. Build augmented prompt
+#     augmented_prompt = f"""
+# You are an AI infrastructure assistant.
+
+# Use the provided infrastructure context
+# to answer the user's question.
+
+# Context:
+# {context}
+
+# User Question:
+# {data.query}
+# """
+
+#     # 4. Send to LLM
+#     response = client.chat.completions.create(
+#         model="llama-3.1-8b-instant",
+#         messages=[
+#             {
+#                 "role": "system",
+#                 "content": "You are a Kubernetes and infrastructure AI assistant."
+#             },
+#             {
+#                 "role": "user",
+#                 "content": augmented_prompt
+#             }
+#         ]
+#     )
+
+#     answer = response.choices[0].message.content
+
+#     return {
+#         "query": data.query,
+#         "retrieved_context": search_results,
+#         "ai_answer": answer
+#     }
+
+# this is used with the context_engineering.py file
 @app.post("/rag")
 def rag_query(data: RagQueryRequest):
 
-    # 1. Search vector memory
-    search_results = memory_store.search(
+    # =====================================
+    # 1. Hybrid Retrieval
+    # =====================================
+
+    candidates = hybrid_search(
         data.query,
-        top_k=3
+        top_k=10
     )
 
-    # 2. Combine retrieved context
-    context = "\n".join([
-        item["text"]
-        for item in search_results
-    ])
+    # =====================================
+    # 2. Reranking
+    # =====================================
 
-    # 3. Build augmented prompt
+    reranked = rerank(
+        data.query,
+        candidates,
+        top_k=5
+    )
+
+    # =====================================
+    # 3. Context Engineering
+    # =====================================
+
+    deduplicated = deduplicate_results(
+        reranked
+    )
+
+    final_context_chunks = limit_context(
+        deduplicated,
+        max_chunks=3
+    )
+
+    context = build_context(
+        final_context_chunks
+    )
+
+    # =====================================
+    # 4. Prompt Construction
+    # =====================================
+
     augmented_prompt = f"""
-You are an AI infrastructure assistant.
+You are an expert Kubernetes and infrastructure AI assistant.
 
-Use the provided infrastructure context
-to answer the user's question.
+Use ONLY the provided context to answer.
 
-Context:
+If the answer is not found in the context,
+say:
+"I could not find enough infrastructure evidence."
+
+=========================
+CONTEXT
+=========================
+
 {context}
 
-User Question:
+=========================
+USER QUESTION
+=========================
+
 {data.query}
 """
 
-    # 4. Send to LLM
+    # =====================================
+    # 5. LLM Generation
+    # =====================================
+
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[
             {
                 "role": "system",
-                "content": "You are a Kubernetes and infrastructure AI assistant."
+                "content": (
+                    "You are a production infrastructure AI assistant."
+                )
             },
             {
                 "role": "user",
@@ -349,27 +449,26 @@ User Question:
 
     return {
         "query": data.query,
-        "retrieved_context": search_results,
+        "retrieved_context": final_context_chunks,
         "ai_answer": answer
     }
 
+# @app.post("/add-large-document")
+# def add_large_document(
+#     data: LargeDocumentRequest
+# ):
 
-@app.post("/add-large-document")
-def add_large_document(
-    data: LargeDocumentRequest
-):
+#     chunks = chunk_text(
+#         data.text
+#     )
 
-    chunks = chunk_text(
-        data.text
-    )
+#     for chunk in chunks:
 
-    for chunk in chunks:
+#         memory_store.add_document(
+#             chunk
+#         )
 
-        memory_store.add_document(
-            chunk
-        )
-
-    return {
-        "message": "Large document added",
-        "chunks_created": len(chunks)
-    }
+#     return {
+#         "message": "Large document added",
+#         "chunks_created": len(chunks)
+#     }
